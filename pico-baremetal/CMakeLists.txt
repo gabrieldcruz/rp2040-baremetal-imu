@@ -35,7 +35,7 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(pico-baremetal main.c )
+add_executable(pico-baremetal main.c drivers/resets.c)
 
 pico_set_program_name(pico-baremetal "pico-baremetal")
 pico_set_program_version(pico-baremetal "0.1")
@@ -51,6 +51,7 @@ target_link_libraries(pico-baremetal
 # Add the standard include files to the build
 target_include_directories(pico-baremetal PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
+        ${CMAKE_CURRENT_LIST_DIR}/drivers
 )
 
 # Add any user requested libraries
