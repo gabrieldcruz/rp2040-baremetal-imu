@@ -59,6 +59,26 @@ static void uart_write(const char *s)
     }
 }
 
+/* Receive one byte. Returns the byte (0–255), or -1 on timeout. */
+static int uart_getc(void)
+{
+    for (uint32_t i = 0; i < UART_TIMEOUT_LOOPS; i++) {
+        if ((reg_read(UART0_BASE + UART_UARTFR_OFFSET) & UART_UARTFR_RXFE_BITS) == 0) {
+            return reg_read(UART0_BASE + UART_UARTDR_OFFSET) & 0xFF;
+        }
+    }
+    return -1;
+}
+
+/* Loopback self-test (GP0 jumpered to GP1): send 'A', expect 'A' back. */
+static bool uart_loopback_test(void)
+{
+    while (uart_getc() != -1) {   /* drain old bytes (e.g. the looped-back hello) */
+    }
+    uart_putc('A');
+    return uart_getc() == 'A';
+}
+
 int main(void)
 {
     /* Step 1: release IO_BANK0 and PADS_BANK0 from reset. */
@@ -96,7 +116,13 @@ int main(void)
               UART_UARTCR_UARTEN_BITS | UART_UARTCR_TXE_BITS | UART_UARTCR_RXE_BITS);
     
     uart_write("Hello from my own UART driver\r\n");
-    
+
+    /* Loopback test: pass -> timer starts, LED blinks. Fail -> LED stays solid. */
+    if (!uart_loopback_test()) {
+        while (1) {          /* stop here: timer never starts */
+        }
+    }
+
     /* Step 5: timer interrupt setup */
     reg_set(TIMER_BASE + TIMER_INTE_OFFSET, TIMER_INTE_ALARM_0_BITS);
     reg_write(PPB_BASE + M0PLUS_NVIC_ISER_OFFSET, 1u << TIMER_IRQ_0);
